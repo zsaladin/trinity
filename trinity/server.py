@@ -254,6 +254,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         )
 
         if self.peer_pool.is_full:
+            self.logger.debug('Peer pool is full')
             await peer.disconnect(DisconnectReason.too_many_peers)
             return
         elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
@@ -269,6 +270,10 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         ])
         if total_peers > 1 and inbound_peer_count / total_peers > DIAL_IN_OUT_RATIO:
             # make sure to have at least 1/4 outbound connections
+            self.logger.debug(
+                'Already have %s inbound peers out of %s',
+                inbound_peer_count, total_peers
+            )
             await peer.disconnect(DisconnectReason.too_many_peers)
         else:
             # We use self.wait() here as a workaround for

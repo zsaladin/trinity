@@ -163,6 +163,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.parity_pong_tokens: Dict[Hash32, Hash32] = {}
         self.cancel_token = CancelToken('DiscoveryProtocol').chain(cancel_token)
 
+        self.logger.debug('using address %s', self.address)
+
+
     def update_routing_table(self, node: kademlia.Node) -> None:
         """Update the routing table entry for the given node."""
         eviction_candidate = self.routing.add_node(node)
@@ -212,7 +215,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             # remembers us.
             await self.wait_ping(node)
         except AlreadyWaitingDiscoveryResponse:
-            self.logger.debug("binding failed, already waiting for ping")
+            self.logger.debug("binding failed, already waiting for ping from %s", node)
             return False
 
         self.logger.debug2("bonding completed successfully with %s", node)
@@ -260,9 +263,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             try:
                 got_pong = await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=kademlia.k_request_timeout)
-                self.logger.debug2('got expected pong with token %s', encode_hex(token))
+                self.logger.debug(
+                    'got expected pong from %s (token == %s)',
+                    remote, encode_hex(token)
+                )
             except TimeoutError:
-                self.logger.debug2(
+                self.logger.debug(
                     'timed out waiting for pong from %s (token == %s)',
                     remote,
                     encode_hex(token),
@@ -975,12 +981,13 @@ class DiscoveryService(BaseService):
 
     async def handle_get_peer_candidates_requests(self) -> None:
         async for event in self._event_bus.stream(PeerCandidatesRequest):
+            self.logger.debug("Servicing request for more peer candidates")
 
             self.run_task(self.maybe_lookup_random_node())
 
             nodes = tuple(to_uris(self.proto.get_nodes_to_connect(event.max_candidates)))
 
-            self.logger.debug2("Broadcasting peer candidates (%s)", nodes)
+            self.logger.debug("Broadcasting peer candidates (%s)", nodes)
             self._event_bus.broadcast(
                 event.expected_response_type()(nodes),
                 event.broadcast_config()
@@ -991,7 +998,7 @@ class DiscoveryService(BaseService):
 
             nodes = tuple(to_uris(self.proto.get_random_bootnode()))
 
-            self.logger.debug2("Broadcasting random boot nodes (%s)", nodes)
+            self.logger.debug("Broadcasting random boot nodes (%s)", nodes)
             self._event_bus.broadcast(
                 event.expected_response_type()(nodes),
                 event.broadcast_config()
