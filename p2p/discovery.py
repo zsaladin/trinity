@@ -981,13 +981,13 @@ class DiscoveryService(BaseService):
 
     async def handle_get_peer_candidates_requests(self) -> None:
         async for event in self._event_bus.stream(PeerCandidatesRequest):
-            self.logger.debug("Servicing request for more peer candidates")
+            self.logger.debug("[%s] Servicing request for more peer candidates", event.id)
 
             self.run_task(self.maybe_lookup_random_node())
 
             nodes = tuple(to_uris(self.proto.get_nodes_to_connect(event.max_candidates)))
 
-            self.logger.debug("Broadcasting peer candidates (%s)", nodes)
+            self.logger.debug("[%s] Broadcasting peer candidates (%s)", event.id, nodes)
             self._event_bus.broadcast(
                 event.expected_response_type()(nodes),
                 event.broadcast_config()

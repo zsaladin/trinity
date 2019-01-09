@@ -1,3 +1,5 @@
+import random
+
 from typing import (
     Tuple,
     Type,
@@ -26,6 +28,11 @@ class PeerCandidatesRequest(BaseRequestResponseEvent[PeerCandidatesResponse]):
 
     def __init__(self, max_candidates: int) -> None:
         self.max_candidates = max_candidates
+        self.id = PeerCandidatesRequest.random_id()
+
+    @staticmethod
+    def random_id() -> str:
+        return hex(random.randrange(16 ** 4))
 
     @staticmethod
     def expected_response_type() -> Type[PeerCandidatesResponse]:

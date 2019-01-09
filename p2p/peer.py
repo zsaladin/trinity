@@ -813,18 +813,23 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             available_peer_slots = self.max_peers - len(self)
             if available_peer_slots > 0:
                 try:
-                    self.logger.debug("Asking discovery for more peer candidates")
+                    request = PeerCandidatesRequest(available_peer_slots)
+                    self.logger.debug(
+                        "[%s] Asking discovery for more peer candidates", request.id
+                    )
                     response = await self.wait(
                         # TODO: This should use a BroadcastConfig to send the request to discovery
                         # only as soon as we have cut a new Lahja release.
-                        self.event_bus.request(PeerCandidatesRequest(available_peer_slots)),
+                        self.event_bus.request(request),
                         timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
                     )
+                    self.logger.debug("[%s] received some peer candidates", request.id)
                 except TimeoutError:
-                    self.logger.warning("Discovery did not answer PeerCandidateRequest in time")
+                    self.logger.warning(
+                        "[%s] Discovery did not answer PeerCandidateRequest in time",
+                        request.id
+                    )
                     continue
-                else:
-                    self.logger.debug("received some peer candidates")
 
                 # In some cases (e.g ROPSTEN or private testnets), the discovery table might be
                 # full of bad peers so if we can't connect to any peers we try a random bootstrap
