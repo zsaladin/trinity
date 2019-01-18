@@ -145,6 +145,32 @@ def test_kbucket_remove():
     assert bucket.nodes == []
     assert bucket.replacement_cache == []
 
+    for node in nodes:
+        bucket.add(node)
+    assert bucket.nodes == nodes
+    assert bucket.replacement_cache == []
+
+    for replacement_node in replacement_nodes:
+        bucket.add(replacement_node)
+    assert bucket.nodes == nodes
+    assert bucket.replacement_cache == replacement_nodes
+
+    bucket.remove_node(replacement_nodes.pop())
+    assert bucket.nodes == nodes
+    assert bucket.replacement_cache == replacement_nodes
+
+    bucket.remove_node(nodes.pop())
+    nodes.append(replacement_nodes.pop())
+    assert bucket.nodes == nodes
+    assert bucket.replacement_cache == replacement_nodes
+
+    all_nodes = list(itertools.chain(nodes, replacement_nodes))
+    random.shuffle(all_nodes)
+    for node in all_nodes:
+        bucket.remove_node(node)
+    assert bucket.nodes == []
+    assert bucket.replacement_cache == []
+
 
 def test_kbucket_duplicate():
     bucket = kademlia.KBucket(0, 100)
